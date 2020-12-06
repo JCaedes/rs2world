@@ -3,7 +3,7 @@
 Region-centered meaning that entity updating will be focussed on regions that are active (active meaning regions that contain players 
 or regions neighbouring regions with players). Inactive regions and their contained entities (NPCs, items and objects) will <b>not</b> be updated
 and will be serizalized after there are no events relevant to them. When a player enters or nears an inactive region, the region system will check if
-there is seriazalized data available for that region. If not, it will construct the region from the data in the cache.</p>
+there is serialized data available for that region. If not, it will construct the region from the data in the cache.</p>
 
 Current checkpoints in development are:
 <ul>
