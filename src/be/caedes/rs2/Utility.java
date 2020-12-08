@@ -1,6 +1,14 @@
 package be.caedes.rs2;
 
+import java.security.SecureRandom;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 public class Utility {
+
+    public static final ExecutorService io = Executors.newSingleThreadExecutor();
+
+    public static final SecureRandom rng = new SecureRandom();
 
     public static long elapsedMillis(long moment) {
         return System.currentTimeMillis() - moment;

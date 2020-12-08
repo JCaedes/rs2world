@@ -1,13 +1,7 @@
 package be.caedes.rs2;
 
-import be.caedes.rs2.net.Client;
+import be.caedes.rs2.net.Server;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -15,27 +9,17 @@ import java.util.LinkedList;
 public class RS2World {
 
     private static final int PORT = 43594;
-    private static final int BATCH_ACCEPT_ATTEMPTS = 5;
-    private static final long BATCH_ACCEPT_PERIOD = 1000;
+    private static final int CAPACITY = 200;
 
     private static int currentTick = 0;
+    private static Server server;
     private static final HashMap<Integer, LinkedList<Event>> eventMap = new HashMap<>();
-    private static ServerSocketChannel serverSocketChannel;
-    private static Selector selector;
-    private static final HashMap<SelectionKey, Client> clientMap = new HashMap<>();
-    private static long lastBatchAccept = 0;
 
     public static void main(String[] args) {
         System.out.println("INFO: Attempting to open rs2 server on port: "+PORT);
-        try {
-            selector = Selector.open();
-            serverSocketChannel = ServerSocketChannel.open();
-            serverSocketChannel.configureBlocking(false);
-            serverSocketChannel.socket().bind(new InetSocketAddress(43594));
-            serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
-        } catch(IOException ioe) {
-            ioe.printStackTrace();
-        }
+        server = new Server(PORT, CAPACITY);
+        Thread serverThread = new Thread(server);
+        serverThread.start();
 
         boolean running = true;
         while (running) {
@@ -43,7 +27,6 @@ public class RS2World {
             long start = System.currentTimeMillis();
 
             //start server logic here
-            cycleNetworkLogic();
             triggerScheduledEvents();
 
             long sleepDuration = 600 - (System.currentTimeMillis() - start);
@@ -99,36 +82,8 @@ public class RS2World {
         }
     }
 
-    private static void cycleNetworkLogic() {
-        try {
-            selector.selectNow();
-            Iterator<SelectionKey> keys = selector.selectedKeys().iterator();
-            while (keys.hasNext()) {
-                SelectionKey key = keys.next();
-                if (key.isValid()) {
-                    if (key.isAcceptable() && Utility.elapsedMillis(lastBatchAccept, BATCH_ACCEPT_PERIOD)) {
-                        lastBatchAccept = System.currentTimeMillis();
-                        for (int i = 0; i < BATCH_ACCEPT_ATTEMPTS; i++) {
-                            SocketChannel channel = serverSocketChannel.accept();
-                            if (channel == null) break;
-                            channel.configureBlocking(false);
-                            SelectionKey newKey = channel.register(selector, SelectionKey.OP_READ);
-                            clientMap.put(newKey, new Client(newKey));
-                        }
-                    } else if (key.isReadable()) {
-                        Client client = clientMap.get(key);
-                        if (client != null) {
-                            client.decode();
-                        } else {
-                            key.cancel();
-                        }
-                    }
-                }
-                keys.remove();
-            }
-        } catch(IOException ioe) {
-            ioe.printStackTrace();
-        }
+    public static Server server() {
+        return server;
     }
 
 }
